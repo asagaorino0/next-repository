@@ -5,15 +5,16 @@ export default function QiitaPage({ allData }: { allData: any }) {
     console.log(allData)
 
     const renderUsers = allData.map((data: any) => (
-        // <Link href={`./qiita/items/`}>
+        // <Link href={`https://qiita.com/api/v2/items/${data.id}`}>
         <Link href={`./qiita/items/${data.id}`}>
 
             {/* <Link href={`./posts/${data.user.permanent_id}`}> */}
             <div key={data.id} className={styles.card} >
-                id:{data.id}<br />user.id:{data.user.id},
+                id:{data.id}
                 <br /><img src={data.user.profile_image_url} style={{ borderRadius: '50%', width: '40px', height: '40px' }} />
                 <h3>{data.user.name}</h3>
-                <br />{data.title} <br />{data.user.permanent_id}
+                <br />
+                <h3>{data.title}</h3>
             </div>
         </Link>
     ));

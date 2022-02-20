@@ -43,7 +43,7 @@ export async function getQIITADataIds() {
 }
 
 export async function getUserDataById(id: string) {
-    const res = await axios.get(`https://qiita.com/api/v2/items${id}`)
+    const res = await axios.get(`https://qiita.com/api/v2/items/${id}`)
     const data = res.data
     return convertJson(data)
 }
