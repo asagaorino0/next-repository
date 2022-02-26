@@ -17,7 +17,8 @@
     "dotenv": "^16.0.0",
     "firebase": "^9.6.7",
     "firebase-admin": "^10.0.2",
-    "firebase-functions": "^3.18.1"
+    "firebase-functions": "^3.18.1",
+    "stripe": "^8.205.0"
   },
   "devDependencies": {
     "firebase-functions-test": "^0.3.3",

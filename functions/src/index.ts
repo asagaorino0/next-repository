@@ -24,7 +24,6 @@ const firebaseConfig = {
     messagingSenderId: functions.config().someservice.firebase.messagingsenderid,
     appId: functions.config().someservice.firebase.appid,
     measurementId: functions.config().someservice.firebase.measurementid,
-    secret_token: functions.config().stripe.secret_token,
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -46,32 +45,151 @@ exports.addMessage = functions.https.onRequest(async (req: any, res: any) => {
     res.json({ result: `Message with ID: ${writeResult.id} added.` });
 });
 
-// const { Stripe } = require('stripe');
-// const stripe = new Stripe(functions.config().stripe.secret_token, {
-//     apiVersion: '2020-08-27',
-// });
-
 export const onCheckout = functions.firestore
-    .document('users/{uid}/tomare/{cusPayId}')
+    .document('users/{uid}/tomare/{receipt_url}')
     .onUpdate(async (change: any, context: any) => {
         const newValue = change.after.data();
         // .onCreate(async (snap: any, context: any) => {
-        //     const newValue = snap.data();        
+        //     const newValue = snap.data();     
         const tomareId = newValue.tomareId
+        const yoyakuId = newValue.yoyakuId
         const uid = newValue.uid;
         const newPay = newValue.cusPay
-        const batch = writeBatch(db);
         console.log('pay::::::', newPay, tomareId, uid,)
-        // const stripe = require('stripe')(functions.config().stripe.secret_token);
+        const batch = writeBatch(db);
         try {
             const setRef = doc(db, "users", `${uid}`, "tomare", `${tomareId}`);
             batch.set(setRef, { pay: newPay }, { merge: true });
+            batch.delete(doc(db, "yoyakuPay", `${yoyakuId}`))
             await batch.commit();
         }
         catch (err) {
             console.log(err)
         }
     });
+
+// export const createStripeCustomer = functions.firestore
+//     .document('users/{uid}/tomare/{cusPayId}')
+//     .onUpdate(async (change: any, context: any) => {
+//         const newValue = change.after.data();
+//         const stripe = require('stripe')(functions.config().stripe.secret_token);
+//         // const { Stripe } = require('stripe');
+//         // const stripe = new Stripe('00000', {
+//         //     apiVersion: '2020-08-27',
+//         // });
+//         const tomareId = newValue.tomareId
+//         const uid = newValue.uid;
+//         // const cusId = newValue.cusId;
+//         const batch = writeBatch(db);
+//         console.log('pay::::::', tomareId, uid,)
+//         const customer = await stripe.customers.create({ email: 'xcnsn723@yahoo.co.jp' });
+//         console.log('customer::::', customer.id,)
+//         const intent = await stripe.setupIntents.create({
+//             customer: customer.id,
+//         });
+//         try {
+//             const setRef = doc(db, "stripe_customers", uid, "payments", uid);
+//             batch.set(setRef, {
+//                 uid,
+//                 customer_id: customer.id,
+//                 // customer_id: cusId,
+//                 setup_secret: intent.client_secret,
+//                 pushId: uid
+//             }, { merge: true });
+//             await batch.commit();
+//         }
+//         catch (err) {
+//             console.log(err)
+//         }
+//     });
+
+// export const confirmStripePayment = functions.firestore
+//     .document('stripe_customers/{uid}/payments/{customer_id}')
+//     // .document('users/{uid}/tomare/{cusPayId}')
+//     .onUpdate(async (change: any, context: any) => {
+//         const stripe = require('stripe')(functions.config().stripe.secret_token);
+//         // if (change.after.data().status === 'requires_confirmation') {
+//         const payment = await stripe.paymentIntents.confirm(
+//             change.after.data().id
+//         );
+//         change.after.ref.set(payment);
+//         console.log(`payment::::::::`, payment)
+//         // }
+//     });
+
+
+// export const createStripePayment = functions.firestore
+//     .document('stripe_customers/{uid}/payments/{pushId}')
+//     .onCreate(async (snap: any, context: any) => {
+//         const { amount, currency, payment_method } = snap.data();
+//         const stripe = require('stripe')(functions.config().stripe.secret_token);
+//         try {
+//             // Look up the Stripe customer id.
+//             const customer = (await snap.ref.parent.parent.get()).data().customer_id;
+//             // Create a charge using the pushId as the idempotency key
+//             // to protect against double charges.
+//             const idempotencyKey = context.params.pushId;
+//             const payment = await stripe.paymentIntents.create(
+//                 {
+//                     amount,
+//                     currency,
+//                     customer,
+//                     payment_method,
+//                     off_session: false,
+//                     confirm: true,
+//                     confirmation_method: 'manual',
+//                 },
+//                 { idempotencyKey }
+//             );
+//             // If the result is successful, write it back to the database.
+//             await snap.ref.set(payment);
+//         }
+//         catch (err) {
+//             console.log(err)
+//         }
+//     });
+
+
+// export const addPaymentMethodDetails = functions.firestore
+//     .document('/stripe_customers/{customer_id}')
+//     // .onCreate(async (snap, context) => {
+//     // .document('users/{uid}/tomare/{cusPayId}')
+//     .onUpdate(async (change: any, context: any) => {
+//         const newValue = change.after.data();
+//         const uid = newValue.uid;
+//         const batch = writeBatch(db);
+//         const stripe = require('stripe')(functions.config().stripe.secret_token);
+//         try {
+//             const paymentMethodId = newValue.customer_id;
+//             const paymentMethod = await stripe.paymentMethods.retrieve(
+//                 paymentMethodId
+//             );
+//             const setRef = doc(db, "stripe_customers", uid, "payment_methods", uid);
+//             batch.set(setRef, { paymentMethod }, { merge: true });
+//             await batch.commit();
+//             // await change.ref.set(paymentMethod);
+//             // Create a new SetupIntent so the customer can add a new method next time.
+//             const intent = await stripe.setupIntents.create({
+//                 customer: `${paymentMethod.customer}`,
+//             });
+//             console.log('customert:::::', `${paymentMethod.customer}`)
+//             // try {
+//             // const setRef = doc(db, "stripe_customers", uid, "payment_methods", uid);
+//             batch.set(setRef, { setup_secret: intent.client_secret }, { merge: true });
+//             await batch.commit();
+//             console.log('intent.client_secret:::::', intent.client_secret)
+//             // await change.ref.parent.parent.set(
+//             //     {
+//             //         setup_secret: intent.client_secret,
+//             //     },
+//             //     { merge: true }
+//             // );
+//             // return;
+//         }
+//         catch (err) {
+//             console.log(err)
+//         }
+//     });
 
 exports.helloworld = functions.https.onRequest(async (req: any) => {
     // Send back a message that we've successfully written the message
