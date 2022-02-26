@@ -16,27 +16,22 @@ admin.initializeApp();
 
 ////////////////////////////////////////////////
 const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_APIKEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTHDOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECTID,
-    databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DBURL,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGEBUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGINGSENDERID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APPID,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENTID,
+    apiKey: functions.config().someservice.firebase.apikey,
+    authDomain: functions.config().someservice.firebase.authdomain,
+    projectId: functions.config().someservice.firebase.projectid,
+    databaseURL: functions.config().someservice.firebase.databaseurl,
+    storageBucket: functions.config().someservice.firebase.storagebucket,
+    messagingSenderId: functions.config().someservice.firebase.messagingsenderid,
+    appId: functions.config().someservice.firebase.appid,
+    measurementId: functions.config().someservice.firebase.measurementid,
+    secret_token: functions.config().stripe.secret_token,
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 /////////////////////////////////////////////////
-
-
-
-
-
-
 const config = {
-    channelAccessToken: process.env.NEXT_PUBLIC_LINE_ACCESS_TOKEN!,
-    channelSecret: process.env.NEXT_PUBLIC_LINE_CHANNEL_SECRET!
+    channelAccessToken: functions.config().line.channel_access_token,
+    channelSecret: functions.config().line.channel_secret
 };
 const client = new line.Client(config);
 
@@ -50,6 +45,33 @@ exports.addMessage = functions.https.onRequest(async (req: any, res: any) => {
     // Send back a message that we've successfully written the message
     res.json({ result: `Message with ID: ${writeResult.id} added.` });
 });
+
+// const { Stripe } = require('stripe');
+// const stripe = new Stripe(functions.config().stripe.secret_token, {
+//     apiVersion: '2020-08-27',
+// });
+
+export const onCheckout = functions.firestore
+    .document('users/{uid}/tomare/{cusPayId}')
+    .onUpdate(async (change: any, context: any) => {
+        const newValue = change.after.data();
+        // .onCreate(async (snap: any, context: any) => {
+        //     const newValue = snap.data();        
+        const tomareId = newValue.tomareId
+        const uid = newValue.uid;
+        const newPay = newValue.cusPay
+        const batch = writeBatch(db);
+        console.log('pay::::::', newPay, tomareId, uid,)
+        // const stripe = require('stripe')(functions.config().stripe.secret_token);
+        try {
+            const setRef = doc(db, "users", `${uid}`, "tomare", `${tomareId}`);
+            batch.set(setRef, { pay: newPay }, { merge: true });
+            await batch.commit();
+        }
+        catch (err) {
+            console.log(err)
+        }
+    });
 
 exports.helloworld = functions.https.onRequest(async (req: any) => {
     // Send back a message that we've successfully written the message
@@ -113,6 +135,8 @@ exports.helloworld = functions.https.onRequest(async (req: any) => {
             console.log('🚀 ~ file: Login.tsx ~ line 21 ~ sendMessage ~ err', err);
         });
 });
+
+
 export const onUpdateChip = functions.firestore
     .document('users/{uid}/tomare/{chip}')
     .onUpdate(async (change: any, context: any) => {
@@ -513,6 +537,4 @@ exports.getContentBuffer = (messageId: string) => {
         })
     })
 }
-
-
 
