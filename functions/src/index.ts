@@ -58,8 +58,11 @@ export const onCheckout = functions.firestore
         console.log('pay::::::', newPay, tomareId, uid,)
         const batch = writeBatch(db);
         try {
-            const setRef = doc(db, "users", `${uid}`, "tomare", `${tomareId}`);
-            batch.set(setRef, { pay: newPay }, { merge: true });
+            // const setRef = doc(db, "users", `${uid}`, "tomare", `${tomareId}`);
+            // batch.set(setRef, {
+            //     //  pay: newPay 
+            //     pay: 0
+            // }, { merge: true });
             batch.delete(doc(db, "yoyakuPay", `${yoyakuId}`))
             await batch.commit();
         }
@@ -67,6 +70,32 @@ export const onCheckout = functions.firestore
             console.log(err)
         }
     });
+
+export const onCheckdelete = functions.firestore
+    .document('users/{uid}/tomare/{succes_url}')
+    .onUpdate(async (change: any, context: any) => {
+        const newValue = change.after.data();
+        // .onCreate(async (snap: any, context: any) => {
+        // const newValue = snap.data();
+        const tomareId = newValue.tomareId
+        const yoyakuId = newValue.yoyakuId
+        const uid = newValue.uid;
+        const newPay = newValue.cusPay
+        console.log('pay::::::', newPay, tomareId, uid,)
+        const batch = writeBatch(db);
+        try {
+            // const setRef = doc(db, "users", `${uid}`, "tomare", `${tomareId}`);
+            // batch.set(setRef, {
+            //     pay: newPay
+            // }, { merge: true });
+            batch.delete(doc(db, "yoyakuPay", `${yoyakuId}`))
+            await batch.commit();
+        }
+        catch (err) {
+            console.log(err)
+        }
+    });
+
 
 // export const createStripeCustomer = functions.firestore
 //     .document('users/{uid}/tomare/{cusPayId}')
